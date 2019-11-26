@@ -1,0 +1,3 @@
+imgaug,API1,function1,1,RppPtr_t,srcPtr1,RppPtr_t,srcPtr2,RppiSize,srcSize,validate_image_size,rppHandle_t,rppHandle,/*
+imgaug,API2,function2,1,RppPtr_t,srcPtr1,RppPtr_t,srcPtr2,RppPtr_t,srcPtr3,RppiSize,srcSize,validate_image_size,rppPtr_t,dstPtr,rppHandle_t,rppHandle,/*
+imgaug,API3,function3,1,RppPtr_t,srcPtr1,RppPtr_t,srcPtr2,RppiSize,srcSize,validate_image_size,RppPtr_t,dstPtr,RppiSize,dstSize,validate_image_size,Rpp32f,floatVar,validate_float_range,0,0,Rpp32u,unitVar,validate_float_range,0,0,Rpp32s,intVar,validate_float_range,0,0,Rpp8u,ucharVar,validate_float_range,0,0,Rpp8s,charVar,validate_float_range,0,0,rppHandle_t,rppHandle,/*

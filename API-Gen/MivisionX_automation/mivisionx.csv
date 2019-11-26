@@ -1,0 +1,3 @@
+Brightness,vx_image,pSrc,I,vx_image,pDst,O,vx_float32,alpha,I,vx_int32,beta,I
+AbsoluteDifference,vx_image,pSrc1,I,vx_image,pSrc2,I,vx_image,pDst,O
+Contrast,vx_image,pSrc,I,vx_image,pDst,O,vx_uint32,min,I,vx_uint32,max,I
