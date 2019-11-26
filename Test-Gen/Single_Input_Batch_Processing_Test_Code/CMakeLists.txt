@@ -1,0 +1,11 @@
+cmake_minimum_required (VERSION 2.8)
+project (Rpp_test)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(OpenCV REQUIRED )
+
+include_directories (${OpenCV_INCLUDE_DIRS})
+include_directories (/opt/rocm/opencl/include/)
+include_directories (/opt/rocm/include)
+include_directories (/opt/rocm/rpp/include)
+link_directories    (/opt/rocm/lib)
+link_directories    (/opt/rocm/rpp/lib/)
