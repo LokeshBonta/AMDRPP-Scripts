@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        strcat(funcType,"_HIP")
+        strcat(funcType,"_HIP");
     }
     if(ip_channel == 1)
     {
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        strcat(funcType,"_PKD")
+        strcat(funcType,"_PKD");
     }
     
     int i = 0, j = 0, maxHeight = 0, maxWidth = 0;

@@ -12,15 +12,27 @@
 #include <unistd.h>
 #include<time.h> 
 
+void check_hip_error(void)
+{
+	hipError_t err = hipGetLastError();
+	if (err != hipSuccess)
+	{
+		std::cerr
+			<< "Error: "
+			<< hipGetErrorString(err)
+			<< std::endl;
+		exit(err);
+	}
+}
 using namespace cv;
 using namespace std;
 
-int G_IP_CHANNEL = INPUT%1;
-int G_MODE = INPUT%2;
-char src[1000] = {"INPUT%3"}; 
-char dst[1000] = {"INPUT%4"};
-char funcName[1000] = {"INPUT%5"};
-char funcType[1000] = {"_Batch_PS_ROIS"};
+int G_IP_CHANNEL = 3;
+int G_MODE = 2;
+char src[1000] = {"/home"}; 
+char dst[1000] = {"/home"};
+char funcName[1000] = {"brigntness"};
+char funcType[1000] = {"_Batch_DD_ROID_Center"};
 
 int main(int argc, char **argv)
 {
@@ -39,7 +51,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        strcat(funcType,"_HIP");
+//        strcat(funcType,"_HIP")
     }
     if(ip_channel == 1)
     {
@@ -47,10 +59,10 @@ int main(int argc, char **argv)
     }
     else
     {
-        strcat(funcType,"_PKD");
+//        strcat(funcType,"_PKD")
     }
     
-    int i = 0, j = 0, maxHeight = 0, maxWidth = 0, minHeight = 30000, minWidth = 30000;
+    int i = 0, j = 0;
     unsigned long long count = 0;
     unsigned long long ioBufferSize = 0;
     
@@ -78,6 +90,7 @@ int main(int argc, char **argv)
     closedir(dr);
 
     RppiSize *srcSize = (RppiSize *)calloc(noOfImages, sizeof(RppiSize));
+    RppiROI *roiPoints = (RppiROI *)calloc(noOfImages, sizeof(RppiROI));
     const int images = noOfImages;
     char imageNames[images][1000];
     
@@ -101,25 +114,18 @@ int main(int argc, char **argv)
         }
         srcSize[count].height = image.rows;
         srcSize[count].width = image.cols;
-        if(maxHeight < srcSize[count].height)
-            maxHeight = srcSize[count].height;
-        if(maxWidth < srcSize[count].width)
-            maxWidth = srcSize[count].width;
-        if(minHeight > srcSize[count].height)
-            minHeight = srcSize[count].height;
-        if(minWidth > srcSize[count].width)
-            minWidth = srcSize[count].width;
+        ioBufferSize += (unsigned long long)srcSize[count].height * (unsigned long long)srcSize[count].width * (unsigned long long)ip_channel;
+        roiPoints[count].x = srcSize[count].width / 4; 
+        roiPoints[count].y = srcSize[count].height / 4; 
+        roiPoints[count].roiHeight = srcSize[count].height / 2; 
+        roiPoints[count].roiWidth = srcSize[count].width / 2;
         count++;
     }
     closedir(dr1); 
     
     /* Allocate input and out put buffer */
-    ioBufferSize = (unsigned long long)maxHeight * (unsigned long long)maxWidth * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
     Rpp8u *input = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
     Rpp8u *output = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    RppiSize maxSize;
-    maxSize.height = maxHeight;
-    maxSize.width = maxWidth;
 
     /* Read the input image */
     DIR *dr2 = opendir(src);
@@ -129,10 +135,9 @@ int main(int argc, char **argv)
     {
         if(strcmp(de->d_name,".") == 0 || strcmp(de->d_name,"..") == 0) 
             continue;
-        count = (unsigned long long)i * (unsigned long long)maxHeight * (unsigned long long)maxWidth * (unsigned long long)ip_channel;
         char temp[1000];
         strcpy(temp,src1);
-        strcat(temp, de->d_name);
+        strcat(temp, de->d_name);        
         if(ip_channel == 3)
         {
             image = imread(temp, 1);
@@ -142,33 +147,48 @@ int main(int argc, char **argv)
             image = imread(temp, 0);
         }
         Rpp8u *ip_image = image.data;
-        for(j = 0 ; j < srcSize[i].height; j++)
+        for(j = 0 ; j < srcSize[i].height * srcSize[i].width * ip_channel ; j++)
         {
-            for(int x = 0 ; x < srcSize[i].width ; x++)
-            {
-                for(int y = 0 ; y < ip_channel ; y ++)
-                {
-                    input[count + ((j * maxWidth * ip_channel) + (x * ip_channel) + y)] = ip_image[(j * srcSize[i].width * ip_channel) + (x * ip_channel) + y];
-                }
-            }
+            input[count] = ip_image[j];
+            count++;
         }
         i++;
     }
     closedir(dr2); 
 
-    RppiROI roiPoints; 
-    while (1)
-    {
-        roiPoints.x = rand() % minWidth; 
-        roiPoints.y = rand() % minHeight; 
-        roiPoints.roiHeight = (rand() % minHeight) * 3; 
-        roiPoints.roiWidth = (rand() % minWidth) * 3; 
-        roiPoints.roiHeight -= roiPoints.y; 
-        roiPoints.roiWidth -= roiPoints.x;
-        if((roiPoints.y + roiPoints.roiHeight > roiPoints.y && roiPoints.x + roiPoints.roiWidth > roiPoints.x) && (roiPoints.y + roiPoints.roiHeight < minHeight && roiPoints.x + roiPoints.roiWidth < minWidth))
-            break;
-    }
 /* CODE BEGINS HERE */ 
+    
+	Rpp32f minalpha = 0, maxalpha = 10, alpha[images];
+	Rpp32f minbeta = 0, maxbeta = 255, beta[images];
+	for(i = 0 ; i < images ; i++)
+	{
+		alpha[i] = ((maxalpha - minalpha) / images) * i + minalpha;
+		beta[i] = ((maxbeta - minbeta) / images) * i + minbeta;
+	}
+
+	rppHandle_t handle;
+ 
+	rppCreateWithStreamAndBatchSize(&handle, theQueue, noOfImages); 
+	int *d_input, *d_output;
+	hipMalloc(&in, ioBufferSize * sizeof(Rpp8u));
+	hipMalloc(&out, ioBufferSize * sizeof(Rpp8u));
+	check_hip_error();
+	hipMemcpy(in,input,ioBufferSize * sizeof(Rpp8u),hipMemcpyHostToDevice);
+	check_hip_error();
+
+ 
+	clock_t start, end;
+	double cpu_time_used;
+	start = clock();
+ 
+	rppi_brigntness_u8_pln1_batchDD_ROID_host(d_input, srcSize, d_output, alpha, beta, roiPoints, noOfImages, handle);
+
+	end = clock();
+	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+	cout<<"Batch_DD_D_C TIME"<<cpu_time_used<<endl; 
+	hipMemcpy(output,out,ioBufferSize * sizeof(Rpp8u),hipMemcpyDeviceToHost);
+
+	rppDestroyGPU(handle);
 
 /* CODE ENDS HERE */
 
@@ -176,7 +196,7 @@ int main(int argc, char **argv)
     count = 0;
     for(j = 0 ; j < noOfImages ; j++)
     {
-        int op_size = maxHeight * maxWidth * ip_channel;
+        int op_size = srcSize[j].height * srcSize[j].width * ip_channel;
         Rpp8u *temp_output = (Rpp8u *)calloc(op_size, sizeof(Rpp8u));
         for(i = 0 ; i < op_size ; i++)
         {
@@ -189,12 +209,12 @@ int main(int argc, char **argv)
         Mat mat_op_image;
         if(ip_channel == 3)
         {
-            mat_op_image = Mat(maxHeight, maxWidth, CV_8UC3, temp_output);
+            mat_op_image = Mat(srcSize[j].height, srcSize[j].width, CV_8UC3, temp_output);
             imwrite(temp, mat_op_image);
         }
         if(ip_channel == 1)
         {
-            mat_op_image = Mat(maxHeight, maxWidth, CV_8UC1, temp_output);
+            mat_op_image = Mat(srcSize[j].height, srcSize[j].width, CV_8UC1, temp_output);
             imwrite(temp, mat_op_image);
         }
         free(temp_output);
@@ -203,5 +223,6 @@ int main(int argc, char **argv)
     free(srcSize);
     free(input);
     free(output);
+    free(roiPoints);
     return 0;
 }
