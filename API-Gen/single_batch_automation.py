@@ -20,7 +20,7 @@ modules = []
 module_list = []
 header_file_names = []
 func_category_list = []
-geometric_function = ["function2"]
+geometric_function = ["function2","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract"]
 
 # NEW GPU CODE
 set_non_roi_gpu = "\tRppiROI roiPoints;\n\troiPoints.x = 0;\n\troiPoints.y = 0;\n\troiPoints.roiHeight = 0;\n\troiPoints.roiWidth = 0;\n"
@@ -129,7 +129,7 @@ header_code = r'''
 
 #ifdef HIP_COMPILE
 #include <hip/rpp_hip_common.hpp>
-#incluce "hip/hip_declarations.hpp"
+#include "hip/hip_declarations.hpp"
 
 #elif defined(OCL_COMPILE)
 #include <cl/rpp_cl_common.hpp>
@@ -173,30 +173,78 @@ def cast(object, castedTo):
 
 ocl_function_formate_pln1_gpu = "_cl_batch(\n\t\t\tstatic_cast<cl_mem>(srcPtr),\n\t\t\tstatic_cast<cl_mem>(dstPtr),\n\t\t\trpp::deref(rppHandle),\n\t\t\tRPPI_CHN_PLANAR, 1\n\t\t);\n"
 
-def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_mode, channel_mode):
-    temp = "("
+def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_image_type, channel_mode, mode, dst_exists):
+    if(mode == "cl"):
+        temp = "_cl("
+        mode = ",rpp::deref(rppHandle)"
+    elif(mode == "hip"):
+        temp = "_hip("
+        mode = ",rpp::deref(rppHandle)"
+    elif (mode == "host"):
+        temp = "_host("
+        mode = ""
+
+
     if (num_of_srcs == 1):
-        temp = temp + "\n\t\t\tstatic_cast<"+ backend_mode +">(srcPtr),"
+        temp = temp + "\n\t\t\tstatic_cast<"+ backend_image_type +">(srcPtr),"
     else:
         for i in range(num_of_srcs):
-            temp = temp + "\n\t\t\tstatic_cast<"+ backend_mode + ">(srcPtr" + str(i+1) + "),"
-    temp = temp + "\n\t\t\tRppiSize srcSize,"
-    temp = temp + "\n\t\t\tstatic_cast<" + backend_mode + ">(dstPtr),"
+            temp = temp + "\n\t\t\tstatic_cast<"+ backend_image_type + ">(srcPtr" + str(i+1) + "),"
+    temp = temp + "\n\t\t\t srcSize,"
+    if(dst_exists):
+        temp = temp + "\n\t\t\tstatic_cast<" + backend_image_type + ">(dstPtr),"
     idx = 1
     while idx < len(func_param_list):
         if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
             loc = func_args_list.index(func_param_list[idx])
             param_type = func_args_list[loc -1]
-            temp = temp + "\n\t\t\t" + param_type + " " + func_param_list[idx] + ","
-        idx += 1
+            temp = temp + "\n\t\t\t" + func_param_list[idx] + ","
+            idx +=1 
+
     if (channel_mode == "pln1"):
-        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 1, \n\t\t\trpp::deref(rppHandle));\n"
+        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 1 \n\t\t\t" + mode +");\n"
     elif (channel_mode == "pln3"):
-        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 3, \n\t\t\trpp::deref(rppHandle));\n"
+        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 3 \n\t\t\t" + mode +");\n"
     elif (channel_mode == "pkd3"):
-        temp = temp + "\n\t\t\tRPPI_CHN_PACKED, 3, \n\t\t\trpp::deref(rppHandle));\n"
+        temp = temp + "\n\t\t\tRPPI_CHN_PACKED, 3 \n\t\t\t" + mode +");\n"
+    return temp
+
+def without_batch_function_and_dstptr(num_of_srcs,func_param_list, func_args_list, backend_image_type, channel_mode, mode):
+    if(mode == "cl"):
+        temp = "_cl("
+        mode = ",rpp::deref(rppHandle)"
+    elif(mode == "hip"):
+        temp = "_hip("
+        mode = ",rpp::deref(rppHandle)"
+    elif (mode == "host"):
+        temp = "_host("
+        mode = ""
+
+
+    if (num_of_srcs == 1):
+        temp = temp + "\n\t\t\tstatic_cast<"+ backend_image_type +">(srcPtr),"
+    else:
+        for i in range(num_of_srcs):
+            temp = temp + "\n\t\t\tstatic_cast<"+ backend_image_type + ">(srcPtr" + str(i+1) + "),"
+    temp = temp + "\n\t\t\t srcSize,"
+    #temp = temp + "\n\t\t\tstatic_cast<" + backend_image_type + ">(dstPtr),"
+    idx = 1
+    while idx < len(func_param_list):
+        if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
+            loc = func_args_list.index(func_param_list[idx])
+            param_type = func_args_list[loc -1]
+            temp = temp + "\n\t\t\t" + func_param_list[idx] + ","
+            idx +=1 
+
+    if (channel_mode == "pln1"):
+        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 1 \n\t\t\t" + mode +");\n"
+    elif (channel_mode == "pln3"):
+        temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 3 \n\t\t\t" + mode +");\n"
+    elif (channel_mode == "pkd3"):
+        temp = temp + "\n\t\t\tRPPI_CHN_PACKED, 3 \n\t\t\t" + mode +");\n"
     return temp
     
+
 
 def validate(batch, roi, parameter, resolution):
     if(batch == "batch") and (roi == "nonroi"):
@@ -636,117 +684,37 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                 f.write(api_call + "\n{ \n")
                 f.write(compile_flag_1_gpu)
                 f.write(function)
-                if("dstPtr" in api_call):
-                    if("pln1" in api_call):
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1"))    
-                    elif ("pln3" in api_call):
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1"))    
-                    else:
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pkd3"))    
-                # else:
-                #     if(api_call.count("srcPtr") == 1):
-                #         if("pln1" in api_call):
-                #             f.write(ocl_function_formate_pln1_nodst_gpu)    
-                #         elif ("pln3" in api_call):
-                #             f.write(ocl_function_formate_pln3_nodst_gpu)
-                #         else:
-                #             f.write(ocl_function_formate_pkd3_nodst_gpu)
-                #     elif(api_call.count("srcPtr") == 2):
-                #         if("pln1" in api_call):
-                #             f.write(ocl_function_formate_pln1_2_input_nodst_gpu)    
-                #         elif ("pln3" in api_call):
-                #             f.write(ocl_function_formate_pln3_2_input_nodst_gpu)
-                #         else:
-                #             f.write(ocl_function_formate_pkd3_2_input_nodst_gpu)  
-                    f.write(compile_flag_2_gpu)
-                    f.write(function)
-                    if("pln1" in api_call):
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1"))    
-                    elif ("pln3" in api_call):
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1"))    
-                    else:
-                        f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pkd3"))  
-                    # elif(api_call.count("srcPtr") == 2):
-                    #     if("pln1" in api_call):
-                    #         f.write(hip_function_formate_pln1_2_input_gpu)    
-                    #     elif ("pln3" in api_call):
-                    #         f.write(hip_function_formate_pln3_2_input_gpu)
-                    #     else:
-                    #         f.write(hip_function_formate_pkd3_2_input_gpu)
-                    # elif(api_call.count("srcPtr") == 3):
-                    #     if("pln1" in api_call):
-                    #         f.write(hip_function_formate_pln1_3_input_gpu)    
-                    #     elif ("pln3" in api_call):
-                    #         f.write(hip_function_formate_pln3_3_input_gpu)
-                    #     else:
-                    #         f.write(hip_function_formate_pkd3_3_input_gpu)
+                
+                if("pln1" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1", "cl",("dstPtr" in api_call)))    
+                elif ("pln3" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1", "cl",("dstPtr" in api_call)))    
                 else:
-                    if(api_call.count("srcPtr") == 1):
-                        if("pln1" in api_call):
-                            f.write(hip_function_formate_pln1_nodst_gpu)    
-                        elif ("pln3" in api_call):
-                            f.write(hip_function_formate_pln3_nodst_gpu)
-                        else:
-                            f.write(hip_function_formate_pkd3_nodst_gpu)
-                    elif(api_call.count("srcPtr") == 2):
-                        if("pln1" in api_call):
-                            f.write(hip_function_formate_pln1_2_input_nodst_gpu)    
-                        elif ("pln3" in api_call):
-                            f.write(hip_function_formate_pln3_2_input_nodst_gpu)
-                        else:
-                            f.write(hip_function_formate_pkd3_2_input_nodst_gpu)
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pkd3", "cl",("dstPtr" in api_call)))    
+                
+                f.write(compile_flag_2_gpu)
+                f.write(function)
+                if("pln1" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1", "hip",("dstPtr" in api_call)))    
+                elif ("pln3" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1", "hip", ("dstPtr" in api_call)))    
+                else:
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pkd3", "hip", ("dstPtr" in api_call)))  
+                    
+                
                 f.write(compile_flag_3_gpu)
             else:
                 f.write("\n\nRppStatus  \n")
                 f.write(api_call + "\n{ \n")
-                f.write(set_param_index_host)
-                #if ("ROID" not in api_call) and (function not in geometric_function) :
-                #    if("ROI" not in api_call):
-                #        f.write(set_non_roi_host)
-                #    f.write(copy_roi_points_host)
-                #if("batchD" not in api_call) and ("batchP" not in api_call):
-                #    f.write(copy_src_size_host)
-                #    if("dstSize" in api_call):
-                #        f.write(copy_dst_size_host)
-                # if("batchP" in api_call):
-                #     f.write(copy_src_size_max_padding_host)
-                #     if("dstSize" in api_call):
-                #         f.write(copy_dst_size_max_padding_host)
-                # if("D_ROI" not in api_call) and ("SD_host" not in api_call) and ("DD_host" not in api_call) and ("PD_host" not in api_call):
-                #     idx = 1
-                #     while idx < len(func_param_list):
-                #         if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
-                #             loc = func_args_list.index(func_param_list[idx])
-                #             param_type = func_args_list[loc -1]
-                #             if (param_type == "Rpp32f") or (param_type == "float"):
-                #                 f.write(copy_float_host)
-                #                 f.write(func_param_list[idx])
-                #                 f.write(copy_param_end_host)
-                #             elif (param_type == "Rpp32u") or (param_type == "unsigned int"):
-                #                 f.write(copy_uint_host)
-                #                 f.write(func_param_list[idx])
-                #                 f.write(copy_param_end_host)
-                #             elif (param_type == "Rpp32s") or (param_type == "int"):
-                #                 f.write(copy_int_host)
-                #                 f.write(func_param_list[idx])
-                #                 f.write(copy_param_end_host)
-                #             elif (param_type == "Rpp8u") or (param_type == "unsigned char"):
-                #                 f.write(copy_uchar_host)
-                #                 f.write(func_param_list[idx])
-                #                 f.write(copy_param_end_host)
-                #             elif (param_type == "Rpp8s") or (param_type == "char"):
-                #                 f.write(copy_char_host)
-                #                 f.write(func_param_list[idx])
-                #                 f.write(copy_param_end_host)
-                #         idx += 1          
                 f.write("\t")
                 f.write(function)
-                if(api_call.count("srcPtr") == 1):
-                    f.write(function_formate_host)
-                elif(api_call.count("srcPtr") == 2):
-                    f.write(function_formate_2_input_host)
-                elif(api_call.count("srcPtr") == 3):
-                    f.write(function_formate_3_input_host)
+                if("pln1" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1", "host",("dstPtr" in api_call)))    
+                elif ("pln3" in api_call):
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pln1", "host", ("dstPtr" in api_call)))    
+                else:
+                    f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "Rpp8u *", "pkd3", "host", ("dstPtr" in api_call)))
+                f.write("\n\n\treturn RPP_SUCCESS;\n}") 
                 #if("batchD" in api_call):
                 #    f.write(src_size_different_size_host)
                 #    f.write(src_size_different_size_host)
@@ -756,12 +724,12 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                 #else:
                 #    f.write(src_size_same_size_host)
                 #    f.write(max_src_size_non_padding_host)
-                if("dstPtr" in api_call):
-                    f.write(dst_ptr_host)
-                    if("dstSize" in api_call):
+                #if("dstPtr" in api_call):
+                 #   f.write(dst_ptr_host)
+                 #   if("dstSize" in api_call):
                         #if("batchD" in api_call):
                          #   f.write(dst_size_different_size_host)
-                            f.write(dst_size_different_size_host)
+                           # f.write(dst_size_different_size_host)
                         #elif("batchP" in api_call):
                         #    f.write(dst_size_different_size_host)
                         #    f.write(max_dst_size_padding_host)
@@ -769,34 +737,34 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                         #    f.write(dst_size_same_size_host)
                         #    f.write(max_dst_size_non_padding_host)
                 #if("D_ROI" not in api_call) and ("SD_host" not in api_call) and ("DD_host" not in api_call) and ("PD_host" not in api_call):
-                    idx = 1
-                    inc = 0
-                    while idx < len(func_param_list):
-                        if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
-                            loc = func_args_list.index(func_param_list[idx])
-                            param_type = func_args_list[loc -1]
-                            if (param_type == "Rpp32f") or (param_type == "float"):
-                                f.write(pass_float_1_host)
-                                f.write(str(inc))
-                                f.write(pass_float_2_host)
-                            elif (param_type == "Rpp32u") or (param_type == "unsigned int"):
-                                f.write(pass_uint_1_host)
-                                f.write(str(inc))
-                                f.write(pass_uint_2_host)
-                            elif (param_type == "Rpp32s") or (param_type == "int"):
-                                f.write(pass_int_1_host)
-                                f.write(str(inc))
-                                f.write(pass_int_2_host)
-                            elif (param_type == "Rpp8u") or (param_type == "unsigned char"):
-                                f.write(pass_uchar_1_host)
-                                f.write(str(inc))
-                                f.write(pass_uchar_2_host)
-                            elif (param_type == "Rpp8s") or (param_type == "char"):
-                                f.write(pass_char_1_host)
-                                f.write(str(inc))
-                                f.write(pass_char_2_host)
-                            inc += 1
-                        idx += 1
+                   # idx = 1
+#                   inc = 0
+                    # while idx < len(func_param_list):
+                    #     if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
+                    #         loc = func_args_list.index(func_param_list[idx])
+                    #         param_type = func_args_list[loc -1]
+                    #         if (param_type == "Rpp32f") or (param_type == "float"):
+                    #             f.write(pass_float_1_host)
+                    #             f.write(str(inc))
+                    #             f.write(pass_float_2_host)
+                    #         elif (param_type == "Rpp32u") or (param_type == "unsigned int"):
+                    #             f.write(pass_uint_1_host)
+                    #             f.write(str(inc))
+                    #             f.write(pass_uint_2_host)
+                    #         elif (param_type == "Rpp32s") or (param_type == "int"):
+                    #             f.write(pass_int_1_host)
+                    #             f.write(str(inc))
+                    #             f.write(pass_int_2_host)
+                    #         elif (param_type == "Rpp8u") or (param_type == "unsigned char"):
+                    #             f.write(pass_uchar_1_host)
+                    #             f.write(str(inc))
+                    #             f.write(pass_uchar_2_host)
+                    #         elif (param_type == "Rpp8s") or (param_type == "char"):
+                    #             f.write(pass_char_1_host)
+                    #             f.write(str(inc))
+                    #             f.write(pass_char_2_host)
+                    #         inc += 1
+                    #     idx += 1
                 #else:
                     #idx = 1
                     #while idx < len(func_param_list):
@@ -808,13 +776,13 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                 #        f.write(pass_roi_host_same)
                 #    else:
                 #        f.write(pass_roi_host_different)
-                f.write(pass_batch_size_host)
-                if("pln1" in api_call):
-                    f.write(close_pln1_host)
-                elif("pln3" in api_call):
-                    f.write(close_pln3_host)
-                else:
-                    f.write(close_pkd3_host)    
+                #f.write(pass_batch_size_host)
+                # if("pln1" in api_call):
+                #     f.write(close_pln1_host)
+                # elif("pln3" in api_call):
+                #     f.write(close_pln3_host)
+                # else:
+                #     f.write(close_pkd3_host)    
             
 def basic_function(func_param_list,func_validate_list,func_args_list,func_comments_list):
     for idx,function in enumerate(function_name_list):
