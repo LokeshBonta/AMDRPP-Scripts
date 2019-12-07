@@ -4,7 +4,7 @@ import shlex, subprocess
 import os
 
 rpp_src_dir = "/home/lokeswara/Desktop/AMD-RPP/scripting/"
-csv_name = '/home/lokeswara/Desktop/AMD-RPP/scripting/RPP_Automation/imgaug.csv'
+csv_name = '/home/lokeswara/Desktop/AMD-RPP/AMDRPP-Scripts/API-Gen/imgaug.csv'
 local_path = rpp_src_dir
 
 rpp_types = ["Rpp8u", "Rpp8s", "Rpp16u", "Rpp16s", "Rpp32u", "Rpp32s", "Rpp64u", "Rpp64s", "Rpp32f", "Rpp64f", "RppiSize"]

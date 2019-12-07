@@ -20,7 +20,7 @@ modules = []
 module_list = []
 header_file_names = []
 func_category_list = []
-geometric_function = ["function2","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract"]
+geometric_function = ["function2","laplacian_image_pyramid","gaussian_image_pyramid","canny_edge_detector","fast_corner_detector","harris_corner_detector","flip","rotate","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract","channel_combine"]
 
 # NEW GPU CODE
 set_non_roi_gpu = "\tRppiROI roiPoints;\n\troiPoints.x = 0;\n\troiPoints.y = 0;\n\troiPoints.roiHeight = 0;\n\troiPoints.roiWidth = 0;\n"
