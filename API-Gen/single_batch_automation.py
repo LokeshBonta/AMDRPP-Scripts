@@ -3,8 +3,8 @@ import csv
 import shlex, subprocess
 import os
 
-rpp_src_dir = "/home/lokeswara/Desktop/AMD-RPP/scripting/"
-csv_name = '/home/lokeswara/Desktop/AMD-RPP/AMDRPP-Scripts/API-Gen/imgaug.csv'
+rpp_src_dir = "/home/lokesh/Desktop/MCW/scripting/"
+csv_name = '/home/lokesh/Desktop/MCW/AMDRPP-Scripts/API-Gen/imgaug.csv'
 local_path = rpp_src_dir
 
 rpp_types = ["Rpp8u", "Rpp8s", "Rpp16u", "Rpp16s", "Rpp32u", "Rpp32s", "Rpp64u", "Rpp64s", "Rpp32f", "Rpp64f", "RppiSize"]
@@ -20,7 +20,7 @@ modules = []
 module_list = []
 header_file_names = []
 func_category_list = []
-geometric_function = ["function2","laplacian_image_pyramid","gaussian_image_pyramid","canny_edge_detector","fast_corner_detector","harris_corner_detector","flip","rotate","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract","channel_combine"]
+geometric_function = ["random_shadow","warp_affine","warp_perspective","remap","function2","remap","laplacian_image_pyramid","gaussian_image_pyramid","canny_edge_detector","fast_corner_detector","harris_corner_detector","flip","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract","channel_combine"]
 
 # NEW GPU CODE
 set_non_roi_gpu = "\tRppiROI roiPoints;\n\troiPoints.x = 0;\n\troiPoints.y = 0;\n\troiPoints.roiHeight = 0;\n\troiPoints.roiWidth = 0;\n"
@@ -174,6 +174,7 @@ def cast(object, castedTo):
 ocl_function_formate_pln1_gpu = "_cl_batch(\n\t\t\tstatic_cast<cl_mem>(srcPtr),\n\t\t\tstatic_cast<cl_mem>(dstPtr),\n\t\t\trpp::deref(rppHandle),\n\t\t\tRPPI_CHN_PLANAR, 1\n\t\t);\n"
 
 def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_image_type, channel_mode, mode, dst_exists):
+    print(dst_exists)
     if(mode == "cl"):
         temp = "_cl("
         mode = ",rpp::deref(rppHandle)"
@@ -184,7 +185,6 @@ def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_
         temp = "_host("
         mode = ""
 
-
     if (num_of_srcs == 1):
         temp = temp + "\n\t\t\tstatic_cast<"+ backend_image_type +">(srcPtr),"
     else:
@@ -193,6 +193,8 @@ def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_
     temp = temp + "\n\t\t\t srcSize,"
     if(dst_exists):
         temp = temp + "\n\t\t\tstatic_cast<" + backend_image_type + ">(dstPtr),"
+        temp = temp + "\n\t\t\t dstSize,"
+
     idx = 1
     while idx < len(func_param_list):
         if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
@@ -200,6 +202,8 @@ def without_batch_function(num_of_srcs,func_param_list, func_args_list, backend_
             param_type = func_args_list[loc -1]
             temp = temp + "\n\t\t\t" + func_param_list[idx] + ","
             idx +=1 
+        else:
+            idx += 1
 
     if (channel_mode == "pln1"):
         temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 1 \n\t\t\t" + mode +");\n"
@@ -235,6 +239,8 @@ def without_batch_function_and_dstptr(num_of_srcs,func_param_list, func_args_lis
             param_type = func_args_list[loc -1]
             temp = temp + "\n\t\t\t" + func_param_list[idx] + ","
             idx +=1 
+        else:
+            idx += 1
 
     if (channel_mode == "pln1"):
         temp = temp + "\n\t\t\tRPPI_CHN_PLANAR, 1 \n\t\t\t" + mode +");\n"
@@ -258,7 +264,7 @@ def validate(batch, roi, parameter, resolution):
     return True
 
 def name_generator(function, format, dev, type, api_list):
-    if(function not in geometric_function):
+    if( function == "resize" or function not in geometric_function):
         for batch in batch_list:
             for roi in roi_list:
                 for parameter in parameter_list:
@@ -345,9 +351,13 @@ def header_file_generate(api_list, func_category, func_name , func_comments_list
     f.close()
 
 def api_calls_generate(api_list, final_api_list, func_args_list, func_param_list):
+    
     for func_name in api_list:
         func_args_list_temp = []
         func_args_list_temp = func_args_list[:]
+        # print(func_args_list)
+        # print(func_param_list)
+        # exit(0)
         if ("PD" in func_name) or ("PS" in func_name):
             idx = func_args_list_temp.index("srcSize") + 1
             func_args_list_temp.insert(idx,"RppiSize")
@@ -360,15 +370,15 @@ def api_calls_generate(api_list, final_api_list, func_args_list, func_param_list
             i = 1
             while(i < len(func_param_list)):
                 idx = func_args_list_temp.index(func_param_list[i])
-                if("dstSize" != func_args_list_temp[idx]):
-                    func_args_list_temp[idx] = "*"+func_args_list_temp[idx]
+                # if("dstSize" != func_args_list_temp[idx]):
+                func_args_list_temp[idx] = "*"+func_args_list_temp[idx]
                 i += 1
         if ("DS" in func_name) or ("PS" in func_name):
             idx = func_args_list_temp.index(func_param_list[0])
             func_args_list_temp[idx] = "*"+func_args_list_temp[idx]
-            if("dstSize" in func_args_list_temp):
-                idx = func_args_list_temp.index("dstSize")
-                func_args_list_temp[idx] = "*"+func_args_list_temp[idx]
+            # if("dstSize" in func_args_list_temp):
+            #     idx = func_args_list_temp.index("dstSize")
+            #     func_args_list_temp[idx] = "*"+func_args_list_temp[idx]
         if ("DD" in func_name) or ("PD" in func_name):
             i = 0
             while(i < len(func_param_list)):
@@ -400,6 +410,10 @@ def api_calls_generate(api_list, final_api_list, func_args_list, func_param_list
         temp = temp[:-1]
         func_call = func_call + temp + ")"
         final_api_list.append(func_call)
+    # for api_names in final_api_list:
+    #     print(api_names)
+    # exit(0)
+#API names are correct for Resize too! :)
 
 def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_list,func_param_list,func_args_list):
     type = "Rpp8u"
@@ -420,7 +434,10 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
     #     print("******Skipping function already exists!**********")
 
     # else:
+    print(len(api_list))
+    print(file)
     for api_call in api_list:
+        print("***",api_call)
         if (("ROI" in api_call) or("batch" in api_call)):
             if "gpu" in api_call:
                 f.write("\n\nRppStatus  \n")
@@ -482,6 +499,7 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                     idx += 1
                 f.write(compile_flag_1_gpu)
                 f.write(function)
+                print(function)
                 if("dstPtr" in api_call):
                     if(api_call.count("srcPtr") == 1):
                         if("pln1" in api_call):
@@ -569,13 +587,15 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                     f.write(copy_roi_points_host)
                 if("batchD" not in api_call) and ("batchP" not in api_call):
                     f.write(copy_src_size_host)
-                    if("dstSize" in api_call):
-                        f.write(copy_dst_size_host)
+                    # if("dstSize" in api_call):
+                    #     f.write(copy_dst_size_host)
                 if("batchP" in api_call):
                     f.write(copy_src_size_max_padding_host)
-                    if("dstSize" in api_call):
-                        f.write(copy_dst_size_max_padding_host)
+                    # if("dstSize" in api_call):
+                    #     f.write(copy_dst_size_max_padding_host)
                 if("D_ROI" not in api_call) and ("SD_host" not in api_call) and ("DD_host" not in api_call) and ("PD_host" not in api_call):
+                    if("dstSize" in api_call):
+                        f.write(copy_dst_size_host)
                     idx = 1
                     while idx < len(func_param_list):
                         if(func_param_list[idx] != "dstSize") and (func_param_list[idx] != "srcSize"):
@@ -622,15 +642,29 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                 if("dstPtr" in api_call):
                     f.write(dst_ptr_host)
                     if("dstSize" in api_call):
-                        if("batchD" in api_call):
-                            f.write(dst_size_different_size_host)
-                            f.write(dst_size_different_size_host)
-                        elif("batchP" in api_call):
-                            f.write(dst_size_different_size_host)
-                            f.write(max_dst_size_padding_host)
-                        else:
+                        if ("batchP" in api_call):
+                            if("PS" in api_call):
+                               f.write(dst_size_same_size_host)
+                            #    f.write(max_dst_size_padding_host)
+                            else:
+                                f.write(dst_size_different_size_host)
+                            f.write(max_dst_size_padding_host)  
+                        elif ("SS" in api_call or "DS" in api_call or "_ROI_" in api_call):
                             f.write(dst_size_same_size_host)
                             f.write(max_dst_size_non_padding_host)
+                        else:
+                            f.write(dst_size_different_size_host)
+                            f.write(dst_size_different_size_host)
+                            
+                        # if("batchD" in api_call ):
+                        #     f.write(dst_size_different_size_host)
+                        #     f.write(dst_size_different_size_host)
+                        # elif("batchP" in api_call):
+                        #     f.write(dst_size_different_size_host)
+                        #     f.write(max_dst_size_padding_host)
+                        # else:
+                        #     f.write(dst_size_same_size_host)
+                        #     f.write(max_dst_size_non_padding_host)
                 if("D_ROI" not in api_call) and ("SD_host" not in api_call) and ("DD_host" not in api_call) and ("PD_host" not in api_call):
                     idx = 1
                     inc = 0
@@ -684,14 +718,14 @@ def cpp_file_generate_gpu(api_list,func_category,function,module,func_validate_l
                 f.write(api_call + "\n{ \n")
                 f.write(compile_flag_1_gpu)
                 f.write(function)
-                
+                print("CP1") 
                 if("pln1" in api_call):
                     f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1", "cl",("dstPtr" in api_call)))    
                 elif ("pln3" in api_call):
                     f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pln1", "cl",("dstPtr" in api_call)))    
                 else:
                     f.write(without_batch_function(api_call.count("srcPtr"),func_param_list, func_args_list, "cl_mem", "pkd3", "cl",("dstPtr" in api_call)))    
-                
+                print("CP2")
                 f.write(compile_flag_2_gpu)
                 f.write(function)
                 if("pln1" in api_call):
@@ -789,6 +823,7 @@ def basic_function(func_param_list,func_validate_list,func_args_list,func_commen
         api_list = []
         module = module_list[idx]
         func_category = func_category_list[idx]
+        print(func_category_list)
         if module not in modules:
             print("Creating new module ... ", module)
             os.mkdir(rpp_src_dir + module)
@@ -802,7 +837,9 @@ def basic_function(func_param_list,func_validate_list,func_args_list,func_commen
                     name_generator(function, format, dev, type, api_list)
         final_api_list = []
         api_calls_generate(api_list, final_api_list, func_args_list[idx], func_param_list[idx])
+        print("API calld are generated!!!")
         header_file_generate(final_api_list,func_category,function, func_comments_list[idx], func_args_list[idx])
+        print("Header files are generated!!!")
         cpp_file_generate_gpu(final_api_list,func_category,function,module,func_validate_list[idx], func_param_list[idx], func_args_list[idx])
         print(len(api_list))
 
@@ -845,6 +882,8 @@ def process_csv(csv_reader,numline):
                 i += 1
         func_args_list[count].append(row[i])
         i += 1
+        # print(func_args_list[count])
+        # exit(0)
         while(i < len(row)):
             func_comments_list[count].append(row[i])
             i += 1
