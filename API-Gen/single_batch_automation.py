@@ -3,8 +3,8 @@ import csv
 import shlex, subprocess
 import os
 
-rpp_src_dir = "/home/lokesh/Desktop/MCW/scripting/"
-csv_name = '/home/lokesh/Desktop/MCW/AMDRPP-Scripts/API-Gen/imgaug.csv'
+rpp_src_dir = "/home/lokeswara/Desktop/AMD-RPP/scripting/"
+csv_name = '/home/lokeswara/Desktop/AMD-RPP/AMDRPP-Scripts/API-Gen/imgaug.csv'
 local_path = rpp_src_dir
 
 rpp_types = ["Rpp8u", "Rpp8s", "Rpp16u", "Rpp16s", "Rpp32u", "Rpp32s", "Rpp64u", "Rpp64s", "Rpp32f", "Rpp64f", "RppiSize"]
@@ -20,7 +20,7 @@ modules = []
 module_list = []
 header_file_names = []
 func_category_list = []
-geometric_function = ["random_shadow","warp_affine","warp_perspective","remap","function2","remap","laplacian_image_pyramid","gaussian_image_pyramid","canny_edge_detector","fast_corner_detector","harris_corner_detector","flip","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog", "fisheye", "lens_correction","data_object_copy","channel_extract","channel_combine"]
+geometric_function = ["resize_crop","random_shadow","remap","function2","remap","laplacian_image_pyramid","gaussian_image_pyramid","canny_edge_detector","fast_corner_detector","harris_corner_detector","histogram_equalization","gaussian_image_pyramid", "laplacian_image_pyramid", "rain", "fog","data_object_copy","channel_extract","channel_combine"]
 
 # NEW GPU CODE
 set_non_roi_gpu = "\tRppiROI roiPoints;\n\troiPoints.x = 0;\n\troiPoints.y = 0;\n\troiPoints.roiHeight = 0;\n\troiPoints.roiWidth = 0;\n"
