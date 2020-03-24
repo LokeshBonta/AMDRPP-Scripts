@@ -414,12 +414,12 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
         break;
     
     case 19:
-        test_case_name = "warp-affine";
+        test_case_name = "resize";
 	rppi_resize_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, noOfImages, handle);
         break;
     
     case 20:
-        test_case_name = "warp-affine";
+        test_case_name = "resize-crop";
 	rppi_resize_crop_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, x1, x2, y1, y2, noOfImages, handle);
         break;
     
