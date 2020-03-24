@@ -202,7 +202,8 @@ int main(int argc, char **argv)
    Rpp32f minstdDev = 0.5, maxstdDev = 100, stdDev[images];
 	for(i = 0 ; i < images ; i++)
 	{
-		stdDev[i] = ((maxstdDev - minstdDev) / images) * i + minstdDev;
+        stdDev[i] = 15.0;
+		//stdDev[i] = ((maxstdDev - minstdDev) / images) * i + minstdDev;
 		//cout<<"\nstdDev"<<stdDev[i];
 	}
 	Rpp32f minsnowPercentage = 0, maxsnowPercentage = 1, snowPercentage[images];
@@ -224,7 +225,7 @@ Rpp32f minrainPercentage = 0.5, maxrainPercentage = 1, rainPercentage[images];
 		//cout<<"\nrainHeight"<<rainHeight[i];
 		transparency[i] = mintransparency;
 	}
-	Rpp32f minnoiseProbability = 0.5, maxnoiseProbability = 1, noiseProbability[images];
+	Rpp32f minnoiseProbability = 0.2, maxnoiseProbability = 1, noiseProbability[images];
 	for(i = 0 ; i < images ; i++)
 	{
 		noiseProbability[i] = minnoiseProbability;
@@ -284,7 +285,7 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
 	}
 
     Rpp32f affine_array[6*images];
-    for(i = 0; i < images; i+6)
+    for(i = 0; i < images; i=i+6)
     {
         affine_array[i] = 1.0;
         affine_array[i+1] = 1.5;
@@ -293,7 +294,19 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
         affine_array[i+4] = 2.5;
         affine_array[i+5] = 3.0;
     }
+    
+    Rpp32u x1[images];
+    Rpp32u x2[images];
+    Rpp32u y1[images];
+    Rpp32u y2[images];
 
+    for(i = 0; i < images; i++)
+    {
+       x1[i] = 100;
+       x2[i] = 300;
+       y1[i] = 200;
+       y2[i] = 350;
+    }
 
 
 
@@ -301,6 +314,8 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
 	hipMalloc(&d_input, ioBufferSize * sizeof(Rpp8u));
 	hipMalloc(&d_input_second, ioBufferSize * sizeof(Rpp8u));
 	hipMalloc(&d_output, ioBufferSize * sizeof(Rpp8u));
+	check_hip_error();
+    hipMalloc(&d_output, oBufferSize * sizeof(Rpp8u));
 	check_hip_error();
 	hipMemcpy(d_input, input, ioBufferSize * sizeof(Rpp8u), hipMemcpyHostToDevice);
     hipMemcpy(d_input_second, input, ioBufferSize * sizeof(Rpp8u), hipMemcpyHostToDevice);
@@ -398,6 +413,16 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
 	rppi_warp_affine_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxSize, affine_array, noOfImages, handle);
         break;
     
+    case 19:
+        test_case_name = "warp-affine";
+	rppi_resize_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, noOfImages, handle);
+        break;
+    
+    case 20:
+        test_case_name = "warp-affine";
+	rppi_resize_crop_u8_pkd3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, x1, x2, y1, y2, noOfImages, handle);
+        break;
+    
     default:
         break;
     }
@@ -407,8 +432,9 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
 	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 	cout<<"\n BatchPD : "<<cpu_time_used<<endl;  
 
-        
        	hipMemcpy(output,d_output,oBufferSize * sizeof(Rpp8u),hipMemcpyDeviceToHost);
+        check_hip_error();
+
 
 	rppDestroyGPU(handle);
 
@@ -425,7 +451,7 @@ Rpp32f minstrength = 1.5, maxstrength = 3, strength[images];
         char temp[1000];
         strcpy(temp,dst);
         strcat(temp, imageNames[j]);
-        strcat(temp,  test_case_name.c_str() );
+       // strcat(temp,  test_case_name.c_str() );
         Mat mat_op_image;
         if(ip_channel == 3)
         {

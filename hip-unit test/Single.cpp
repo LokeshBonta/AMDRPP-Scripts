@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     Rpp32f snowPercentage = 0.4;
     Rpp32f angle = 135.0;
     Rpp32f affine[6] = {1.0, 2.0, 1.0, 1.0, 1.0, 2.0};
-    Rpp32f coordinates[4] = {100, 200, 200, 400}
+    Rpp32f coordinates[4] = {100, 200, 200, 400};
     switch (test_case)
     {
     case 0:
@@ -284,8 +284,9 @@ int main(int argc, char **argv)
         rppi_resize_u8_pkd3_gpu(d_input, srcSize[0], d_output, dstSize[0], handle);
     case 20:
         test_case_name = "resize_crop";
-        rppi_resize_u8_pkd3_gpu(d_input, srcSize[0], d_output, dstSize[0], coordinates[0], coordinates[1],
-        coordinates[2], coordinates[4],  handle);
+        rppi_resize_crop_u8_pkd3_gpu(d_input, srcSize[0], d_output, dstSize[0], coordinates[0], coordinates[1],
+        coordinates[2], coordinates[3],  handle);
+   
     
     default:
         break;
