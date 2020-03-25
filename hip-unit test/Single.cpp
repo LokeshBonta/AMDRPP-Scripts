@@ -27,8 +27,9 @@ void check_hip_error(void)
 int G_IP_CHANNEL = 3;
 int G_MODE = 2;
 char funcType[1000] = {"Single"};
-char src[1000] = {"/home/ulagammai/ulagammai/TESTSUITE_RPP/Input_Images/RGB"};
-char dst[1000] = {"/home/ulagammai/Hip-Unit-Testing/output"};
+char src[1000] = {"/Input/Path/"};
+char dst[1000] = {"/Output/Path"};
+
 
 int main(int argc, char **argv)
 {

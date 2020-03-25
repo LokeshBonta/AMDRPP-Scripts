@@ -16,9 +16,9 @@ using namespace std;
 #define images 100
 int G_IP_CHANNEL = 3;
 int G_MODE = 1;
-char src[1000] = {"/home/ulagammai/ulagammai/TESTSUITE_RPP/Input_Images/RGB"};
-char src_second[1000] = {"/home/ulagammai/ulagammai/TESTSUITE_RPP/Input_Images/RGB1"};
-char dst[1000] = {"/home/ulagammai/ocl-Unit-Testing/output"};
+char src[1000] = {"/inputpath/"};
+char src_second[1000] = {"/input2path/"};
+char dst[1000] = {"/output/path/"};
 char funcType[1000] = {"Single"};
 
 

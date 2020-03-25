@@ -16,9 +16,10 @@ using namespace std;
 #define images 100
 int G_IP_CHANNEL = 3;
 int G_MODE = 0;
-char src[1000] = {"/home/swetha/Ulagammai/Input_Images/RGB"};
-char src_second[1000] = {"/home/swetha/Ulagammai/Input_Images/RGB1"};
-char dst[1000] = {"/home/swetha/Ulagammai/host-Unit-Testing/output"};
+char src[1000] = {"/inputpath/"};
+char src_second[1000] = {"/input2path/"};
+char dst[1000] = {"/output/path/"};
+
 char funcType[1000] = {"BatchPD"};
 
 int main(int argc, char **argv)
