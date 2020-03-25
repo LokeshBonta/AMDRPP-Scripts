@@ -1,4 +1,0 @@
-/home/ulagammai/ocl-Unit-Testing/build/CMakeFiles/rebuild_cache.dir
-/home/ulagammai/ocl-Unit-Testing/build/CMakeFiles/edit_cache.dir
-/home/ulagammai/ocl-Unit-Testing/build/CMakeFiles/BatchPD.dir
-/home/ulagammai/ocl-Unit-Testing/build/CMakeFiles/Single.dir

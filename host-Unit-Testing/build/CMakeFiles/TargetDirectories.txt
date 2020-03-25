@@ -1,4 +1,0 @@
-/home/swetha/Ulagammai/host-Unit-Testing/build/CMakeFiles/rebuild_cache.dir
-/home/swetha/Ulagammai/host-Unit-Testing/build/CMakeFiles/edit_cache.dir
-/home/swetha/Ulagammai/host-Unit-Testing/build/CMakeFiles/BatchPD.dir
-/home/swetha/Ulagammai/host-Unit-Testing/build/CMakeFiles/Single.dir
