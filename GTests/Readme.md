@@ -19,5 +19,8 @@ $ sudo cp *.a /usr/lib  # copy or symlink libgtest.a and libgtest_main.a to your
 3. mkdir build; cmake .., make 
 4. ./runTests
 
+## Should See output like this
+![alt text](GTest.png?raw=true)
+
 ## References
 [http://www.eriksmistad.no/getting-started-with-google-test-on-ubuntu/](http://www.eriksmistad.no/getting-started-with-google-test-on-ubuntu/) 
