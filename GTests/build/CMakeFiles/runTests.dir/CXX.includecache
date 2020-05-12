@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/tests.cpp
+whattotest.cpp
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/whattotest.cpp
+gtest/gtest.h
+-
+
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/whattotest.cpp
+math.h
+-
+algorithm
+-
+

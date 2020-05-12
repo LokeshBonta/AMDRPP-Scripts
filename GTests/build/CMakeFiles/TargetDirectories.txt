@@ -1,0 +1,3 @@
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/build/CMakeFiles/edit_cache.dir
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/build/CMakeFiles/rebuild_cache.dir
+/home/lokesh/Documents/Academics/Academic-Projects/GTests/build/CMakeFiles/runTests.dir
