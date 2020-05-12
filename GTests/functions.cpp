@@ -1,4 +1,4 @@
-// whattotest.cpp
+// functions.cpp
 #include <math.h>
 #include<algorithm>
  

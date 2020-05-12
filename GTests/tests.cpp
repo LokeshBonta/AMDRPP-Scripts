@@ -1,6 +1,13 @@
 // tests.cpp
-#include "whattotest.cpp"
+#include "functions.cpp"
 #include <gtest/gtest.h>
+
+// All the RPP stuff
+// Input buffer will only be one
+// GPU output from RPP will be stored in output2 buffer
+// CPU output from RPP will be stored in output1 buffer
+// Compare Both the Tensors
+
  
 TEST(SquareRootTest, PositiveNos) { 
     ASSERT_EQ(6, squareRoot(36.0));
